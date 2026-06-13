@@ -1,0 +1,5 @@
+
+
+<resources>
+    <style name="Theme.ScreenSearch" parent="Theme.AppCompat.Light.DarkActionBar" />
+</resources>
