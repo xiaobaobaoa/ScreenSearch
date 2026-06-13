@@ -115,7 +115,8 @@ public class FloatingWindowService extends Service {
         }
         super.onDestroy();
     }
-}
+
+    @Override
     public IBinder onBind(Intent intent) { return null; }
 
     @Override
