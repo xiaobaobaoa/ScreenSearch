@@ -189,7 +189,7 @@ public class FloatingWindowService extends Service {
             aiSearchService.search(text, new AISearchService.OnSearchResultListener() {
                 @Override
                 public void onResult(String answer) {
-                    runOnUiThread(() -> {
+                    new Handler(getMainLooper()).post(() -> {
                         resultText.setText(answer);
                         searchBtn.setEnabled(true);
                         searchBtn.setText("搜题");
@@ -198,7 +198,7 @@ public class FloatingWindowService extends Service {
 
                 @Override
                 public void onError(String error) {
-                    runOnUiThread(() -> {
+                    new Handler(getMainLooper()).post(() -> {
                         resultText.setText("识别结果:\n" + text + "\n\n---\n搜索失败: " + error);
                         searchBtn.setEnabled(true);
                         searchBtn.setText("搜题");
