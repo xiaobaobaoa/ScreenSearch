@@ -116,7 +116,8 @@ public class FloatingWindowService extends Service {
         LayoutInflater inflater = (LayoutInflater) getSystemService(LAYOUT_INFLATER_SERVICE);
         floatingView = inflater.inflate(R.layout.floating_window, null);
 
-        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        int flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                | WindowManager.LayoutParams.FLAG_SECURE;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             flags |= WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN;
         }
