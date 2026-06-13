@@ -15,6 +15,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Intent> mediaProjectionLauncher;
     private ActivityResultLauncher<Intent> overlayPermissionLauncher;
+    private boolean waitingForOverlay = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -24,10 +25,12 @@ public class MainActivity extends AppCompatActivity {
         overlayPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
+                    waitingForOverlay = false;
                     if (android.provider.Settings.canDrawOverlays(this)) {
                         requestScreenCapture();
                     } else {
-                        Toast.makeText(this, "需要悬浮窗权限", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "需要悬浮窗权限才能使用", Toast.LENGTH_SHORT).show();
+                        finish();
                     }
                 }
         );
@@ -51,7 +54,22 @@ public class MainActivity extends AppCompatActivity {
                 }
         );
 
+        checkAndStart();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (waitingForOverlay && android.provider.Settings.canDrawOverlays(this)) {
+            waitingForOverlay = false;
+            requestScreenCapture();
+        }
+    }
+
+    private void checkAndStart() {
         if (!android.provider.Settings.canDrawOverlays(this)) {
+            waitingForOverlay = true;
+            Toast.makeText(this, "请授予悬浮窗权限", Toast.LENGTH_LONG).show();
             Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     android.net.Uri.parse("package:" + getPackageName()));
             overlayPermissionLauncher.launch(intent);

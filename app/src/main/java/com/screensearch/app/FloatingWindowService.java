@@ -58,6 +58,8 @@ public class FloatingWindowService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        startForeground(1, createNotification());
+
         if (intent != null && intent.hasExtra("code") && intent.hasExtra("data")) {
             int code = intent.getIntExtra("code", -1);
             Intent data = intent.getParcelableExtra("data", Intent.class);
@@ -65,7 +67,6 @@ public class FloatingWindowService extends Service {
         }
 
         showFloatingWidget();
-        startForeground(1, createNotification());
 
         return START_STICKY;
     }
