@@ -1,3 +1,6 @@
 -keep class com.google.mlkit.** { *; }
 -keep class okhttp3.** { *; }
 -keep class okio.** { *; }
+-keep class com.screensearch.app.ScreenshotHook { *; }
+-keep class com.screensearch.app.ScreenshotReceiver { *; }
+-keep class de.robv.android.xposed.** { *; }

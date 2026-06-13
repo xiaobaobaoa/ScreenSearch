@@ -24,13 +24,15 @@ public class MainActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                        Toast.makeText(this, "正在启动...", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(this, FloatActivity.class);
-                        intent.putExtra("code", result.getResultCode());
-                        intent.putExtra("data", result.getData());
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(intent);
-                        finish();
+                        Toast.makeText(this, "正在启动悬浮窗...", Toast.LENGTH_SHORT).show();
+                        Intent serviceIntent = new Intent(this, FloatingWindowService.class);
+                        serviceIntent.putExtra("code", result.getResultCode());
+                        serviceIntent.putExtra("data", result.getData());
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                            startForegroundService(serviceIntent);
+                        } else {
+                            startService(serviceIntent);
+                        }
                     } else {
                         Toast.makeText(this, "屏幕录制授权失败", Toast.LENGTH_SHORT).show();
                     }
