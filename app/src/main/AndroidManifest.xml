@@ -27,14 +27,17 @@
         </activity>
 
         <activity
+            android:name=".FloatActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Transparent"
+            android:launchMode="singleTask"
+            android:taskAffinity=""
+            android:excludeFromRecents="true" />
+
+        <activity
             android:name=".SettingsActivity"
             android:exported="false"
             android:theme="@style/Theme.ScreenSearch" />
-
-        <service
-            android:name=".FloatingWindowService"
-            android:exported="false"
-            android:foregroundServiceType="mediaProjection" />
 
     </application>
 </manifest>
