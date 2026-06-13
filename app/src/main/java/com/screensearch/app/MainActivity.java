@@ -27,9 +27,10 @@ public class MainActivity extends AppCompatActivity {
                 result -> {
                     waitingForOverlay = false;
                     if (android.provider.Settings.canDrawOverlays(this)) {
+                        Toast.makeText(this, "悬浮窗权限已授予，请求屏幕录制...", Toast.LENGTH_SHORT).show();
                         requestScreenCapture();
                     } else {
-                        Toast.makeText(this, "需要悬浮窗权限才能使用", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "悬浮窗权限未授予，无法使用", Toast.LENGTH_SHORT).show();
                         finish();
                     }
                 }
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Toast.makeText(this, "正在启动悬浮窗...", Toast.LENGTH_SHORT).show();
                         Intent serviceIntent = new Intent(this, FloatingWindowService.class);
                         serviceIntent.putExtra("code", result.getResultCode());
                         serviceIntent.putExtra("data", result.getData());
@@ -49,7 +51,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         finish();
                     } else {
-                        Toast.makeText(this, "屏幕录制授权失败", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "屏幕录制授权失败，result=" + result.getResultCode(), Toast.LENGTH_SHORT).show();
                     }
                 }
         );

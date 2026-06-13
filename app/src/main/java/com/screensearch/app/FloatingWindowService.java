@@ -58,15 +58,27 @@ public class FloatingWindowService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        startForeground(1, createNotification());
-
-        if (intent != null && intent.hasExtra("code") && intent.hasExtra("data")) {
-            int code = intent.getIntExtra("code", -1);
-            Intent data = intent.getParcelableExtra("data", Intent.class);
-            startProjection(code, data);
+        try {
+            startForeground(1, createNotification());
+        } catch (Exception e) {
+            Toast.makeText(this, "通知权限异常: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
 
-        showFloatingWidget();
+        if (intent != null && intent.hasExtra("code") && intent.hasExtra("data")) {
+            try {
+                int code = intent.getIntExtra("code", -1);
+                Intent data = intent.getParcelableExtra("data", Intent.class);
+                startProjection(code, data);
+            } catch (Exception e) {
+                Toast.makeText(this, "屏幕录制初始化失败: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+
+        try {
+            showFloatingWidget();
+        } catch (Exception e) {
+            Toast.makeText(this, "悬浮窗创建失败: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
 
         return START_STICKY;
     }
