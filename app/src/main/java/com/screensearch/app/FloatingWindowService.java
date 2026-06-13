@@ -5,6 +5,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
+import android.database.ContentObserver;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
@@ -13,10 +14,14 @@ import android.media.Image;
 import android.media.ImageReader;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
+import android.net.Uri;
 import android.os.Build;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
+import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -27,6 +32,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.File;
 import java.nio.ByteBuffer;
 
 public class FloatingWindowService extends Service {
@@ -45,12 +51,61 @@ public class FloatingWindowService extends Service {
     private AISearchService aiSearchService;
     private View resultPanel;
 
+    private ContentObserver screenshotObserver;
+    private boolean isHidingForScreenshot = false;
+
     @Override
     public void onCreate() {
         super.onCreate();
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         ocrProcessor = new OCRProcessor();
         aiSearchService = new AISearchService(this);
+        startScreenshotDetection();
+    }
+
+    private void startScreenshotDetection() {
+        screenshotObserver = new ContentObserver(new Handler(getMainLooper())) {
+            @Override
+            public void onChange(boolean selfChange, Uri uri) {
+                super.onChange(selfChange, uri);
+                if (!isHidingForScreenshot && floatingView != null) {
+                    isHidingForScreenshot = true;
+                    floatingView.setVisibility(View.INVISIBLE);
+                    new Handler(getMainLooper()).postDelayed(() -> {
+                        if (floatingView != null) {
+                            floatingView.setVisibility(View.VISIBLE);
+                        }
+                        isHidingForScreenshot = false;
+                    }, 1500);
+                }
+            }
+        };
+
+        // 监听多个截图目录
+        String[] screenshotPaths = {
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/Screenshots",
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES) + "/Screenshots",
+            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM) + "/Camera",
+            Environment.getExternalStorageDirectory() + "/ScreenCapture",
+            Environment.getExternalStorageDirectory() + "/Screenshots"
+        };
+
+        for (String path : screenshotPaths) {
+            File dir = new File(path);
+            if (dir.exists()) {
+                Uri uri = Uri.parse("content://media/external/file");
+                getContentResolver().registerContentObserver(uri, true, screenshotObserver);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (screenshotObserver != null) {
+            getContentResolver().unregisterContentObserver(screenshotObserver);
+        }
     }
 
     @Override
