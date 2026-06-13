@@ -152,6 +152,7 @@ public class FloatingWindowService extends Service {
         params.y = 100;
 
         windowManager.addView(floatingView, params);
+        SecureWindowHelper.setSecure(floatingView);
 
         floatingView.setOnTouchListener((view, event) -> {
             switch (event.getAction()) {
@@ -276,6 +277,7 @@ public class FloatingWindowService extends Service {
         );
         params.gravity = Gravity.CENTER;
         windowManager.addView(resultPanel, params);
+        SecureWindowHelper.setSecure(resultPanel);
     }
 
     private Notification createNotification() {
