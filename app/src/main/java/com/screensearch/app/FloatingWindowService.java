@@ -72,6 +72,20 @@ public class FloatingWindowService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        // 处理 LSPosed hook 发来的隐藏/显示广播
+        if (intent != null && intent.hasExtra("action")) {
+            String action = intent.getStringExtra("action");
+            if ("hide".equals(action)) {
+                if (floatingView != null) floatingView.setVisibility(View.INVISIBLE);
+                if (resultPanel != null) resultPanel.setVisibility(View.INVISIBLE);
+                return START_STICKY;
+            } else if ("show".equals(action)) {
+                if (floatingView != null) floatingView.setVisibility(View.VISIBLE);
+                if (resultPanel != null) resultPanel.setVisibility(View.VISIBLE);
+                return START_STICKY;
+            }
+        }
+
         try {
             startForeground(1, createNotification());
         } catch (Exception e) {

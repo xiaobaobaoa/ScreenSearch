@@ -36,5 +36,14 @@
             android:exported="false"
             android:foregroundServiceType="mediaProjection" />
 
+        <receiver
+            android:name=".ScreenshotReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.screensearch.HIDE_WINDOW" />
+                <action android:name="com.screensearch.SHOW_WINDOW" />
+            </intent-filter>
+        </receiver>
+
     </application>
 </manifest>

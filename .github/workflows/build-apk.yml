@@ -27,15 +27,21 @@ jobs:
         api-level: 34
         build-tools: 34.0.0
 
-    - name: Build debug APK
+    - name: Build all APKs
       run: |
-        # 生成 Gradle Wrapper（自动下载 jar）
         gradle wrapper --gradle-version 8.2
         ./gradlew assembleDebug
 
-    - name: Upload APK artifact
+    - name: Upload app APK
       uses: actions/upload-artifact@v4
       with:
         name: app-debug.apk
         path: app/build/outputs/apk/debug/app-debug.apk
+        if-no-files-found: error
+
+    - name: Upload hook APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: hook-debug.apk
+        path: hook/build/outputs/apk/debug/hook-debug.apk
         if-no-files-found: error
