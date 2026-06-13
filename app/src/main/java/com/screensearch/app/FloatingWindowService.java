@@ -51,32 +51,10 @@ public class FloatingWindowService extends Service {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         ocrProcessor = new OCRProcessor();
         aiSearchService = new AISearchService(this);
-
-        RootScreenshotDetector detector = RootScreenshotDetector.getInstance();
-        detector.setCallback(new RootScreenshotDetector.HideCallback() {
-            @Override
-            public void onHide() {
-                if (floatingView != null) {
-                    floatingView.setVisibility(View.INVISIBLE);
-                }
-            }
-
-            @Override
-            public void onShow() {
-                if (floatingView != null) {
-                    floatingView.setVisibility(View.VISIBLE);
-                }
-            }
-        });
-
-        if (detector.checkRoot()) {
-            detector.start();
-        }
     }
 
     @Override
     public void onDestroy() {
-        RootScreenshotDetector.getInstance().stop();
         if (virtualDisplay != null) virtualDisplay.release();
         if (mediaProjection != null) mediaProjection.stop();
         if (floatingView != null) windowManager.removeView(floatingView);
@@ -292,7 +270,8 @@ public class FloatingWindowService extends Service {
                 (int) (screenWidth * 0.8),
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 windowType,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                        | WindowManager.LayoutParams.FLAG_SECURE,
                 PixelFormat.TRANSLUCENT
         );
         params.gravity = Gravity.CENTER;
