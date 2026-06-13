@@ -101,13 +101,21 @@ public class FloatingWindowService extends Service {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
+        if (virtualDisplay != null) virtualDisplay.release();
+        if (mediaProjection != null) mediaProjection.stop();
+        if (floatingView != null) windowManager.removeView(floatingView);
+        if (resultPanel != null) {
+            windowManager.removeView(resultPanel);
+            resultPanel = null;
+        }
+        if (backgroundThread != null) backgroundThread.quitSafely();
+        if (ocrProcessor != null) ocrProcessor.close();
         if (screenshotObserver != null) {
             getContentResolver().unregisterContentObserver(screenshotObserver);
         }
+        super.onDestroy();
     }
-
-    @Override
+}
     public IBinder onBind(Intent intent) { return null; }
 
     @Override
@@ -333,19 +341,5 @@ public class FloatingWindowService extends Service {
                 .setContentText("识屏搜题运行中")
                 .setSmallIcon(android.R.drawable.ic_menu_search)
                 .build();
-    }
-
-    @Override
-    public void onDestroy() {
-        if (virtualDisplay != null) virtualDisplay.release();
-        if (mediaProjection != null) mediaProjection.stop();
-        if (floatingView != null) windowManager.removeView(floatingView);
-        if (resultPanel != null) {
-            windowManager.removeView(resultPanel);
-            resultPanel = null;
-        }
-        if (backgroundThread != null) backgroundThread.quitSafely();
-        if (ocrProcessor != null) ocrProcessor.close();
-        super.onDestroy();
     }
 }
