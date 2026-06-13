@@ -169,27 +169,34 @@ public class FloatingWindowService extends Service {
     private void captureAndOCR() {
         if (imageReader == null) return;
 
-        Image image = imageReader.acquireLatestImage();
-        if (image == null) return;
+        floatingView.setVisibility(View.INVISIBLE);
+        new Handler(getMainLooper()).postDelayed(() -> {
+            Image image = imageReader.acquireLatestImage();
+            if (image == null) {
+                floatingView.setVisibility(View.VISIBLE);
+                return;
+            }
 
-        Image.Plane[] planes = image.getPlanes();
-        ByteBuffer buffer = planes[0].getBuffer();
-        int pixelStride = planes[0].getPixelStride();
-        int rowStride = planes[0].getRowStride();
-        int bufferWidth = rowStride / pixelStride;
+            Image.Plane[] planes = image.getPlanes();
+            ByteBuffer buffer = planes[0].getBuffer();
+            int pixelStride = planes[0].getPixelStride();
+            int rowStride = planes[0].getRowStride();
+            int bufferWidth = rowStride / pixelStride;
 
-        Bitmap bitmap = Bitmap.createBitmap(bufferWidth, screenHeight, Bitmap.Config.ARGB_8888);
-        bitmap.copyPixelsFromBuffer(buffer);
-        image.close();
+            Bitmap bitmap = Bitmap.createBitmap(bufferWidth, screenHeight, Bitmap.Config.ARGB_8888);
+            bitmap.copyPixelsFromBuffer(buffer);
+            image.close();
 
-        int copyWidth = Math.min(screenWidth, bufferWidth);
-        Bitmap cropped = Bitmap.createBitmap(bitmap, 0, 0, copyWidth, screenHeight);
-        if (cropped != bitmap) bitmap.recycle();
+            int copyWidth = Math.min(screenWidth, bufferWidth);
+            Bitmap cropped = Bitmap.createBitmap(bitmap, 0, 0, copyWidth, screenHeight);
+            if (cropped != bitmap) bitmap.recycle();
 
-        ocrProcessor.recognizeText(cropped, result -> {
-            cropped.recycle();
-            showResultPanel(result);
-        });
+            ocrProcessor.recognizeText(cropped, result -> {
+                cropped.recycle();
+                floatingView.setVisibility(View.VISIBLE);
+                showResultPanel(result);
+            });
+        }, 300);
     }
 
     private void showResultPanel(String text) {
