@@ -5,14 +5,14 @@ import android.graphics.Bitmap;
 import com.google.mlkit.vision.common.InputImage;
 import com.google.mlkit.vision.text.TextRecognition;
 import com.google.mlkit.vision.text.TextRecognizer;
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions;
+import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions;
 
 public class OCRProcessor {
 
     private final TextRecognizer recognizer;
 
     public OCRProcessor() {
-        recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS);
+        recognizer = TextRecognition.getClient(new ChineseTextRecognizerOptions.Builder().build());
     }
 
     public void recognizeText(Bitmap bitmap, OnTextResultListener listener) {
