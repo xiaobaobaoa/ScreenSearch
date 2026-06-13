@@ -7,15 +7,19 @@
     android:orientation="vertical"
     android:padding="16dp">
 
-    <TextView
-        android:id="@+id/result_text"
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="8dp"
-        android:textColor="#000000"
-        android:textSize="16sp"
-        android:maxLines="10"
-        android:scrollbars="vertical" />
+        android:maxHeight="300dp">
+
+        <TextView
+            android:id="@+id/result_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="8dp"
+            android:textColor="#000000"
+            android:textSize="14sp" />
+    </ScrollView>
 
     <LinearLayout
         android:layout_width="match_parent"

@@ -138,33 +138,65 @@ public class FloatingWindowService extends Service {
 
         windowManager.addView(floatingView, params);
 
+        final float[] touchDown = new float[2];
+        final boolean[] isDragging = new boolean[1];
+        final int DRAG_THRESHOLD = 10;
+
         floatingView.setOnTouchListener((view, event) -> {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
+                    touchDown[0] = event.getRawX();
+                    touchDown[1] = event.getRawY();
+                    isDragging[0] = false;
                     initialX = params.x;
                     initialY = params.y;
-                    initialTouchX = event.getRawX();
-                    initialTouchY = event.getRawY();
                     return true;
                 case MotionEvent.ACTION_MOVE:
-                    params.x = (int) (initialX + event.getRawX() - initialTouchX);
-                    params.y = (int) (initialY + event.getRawY() - initialTouchY);
-                    windowManager.updateViewLayout(floatingView, params);
+                    float dx = event.getRawX() - touchDown[0];
+                    float dy = event.getRawY() - touchDown[1];
+                    if (!isDragging[0] && (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD)) {
+                        isDragging[0] = true;
+                    }
+                    if (isDragging[0]) {
+                        params.x = (int) (initialX + dx);
+                        params.y = (int) (initialY + dy);
+                        windowManager.updateViewLayout(floatingView, params);
+                    }
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    if (!isDragging[0]) {
+                        View btnScreen = floatingView.findViewById(R.id.btn_screen);
+                        View btnSettings = floatingView.findViewById(R.id.btn_settings);
+                        int[] loc = new int[2];
+                        btnScreen.getLocationOnScreen(loc);
+                        float bx = loc[0], by = loc[1];
+                        float bw = btnScreen.getWidth(), bh = btnScreen.getHeight();
+                        if (event.getRawX() >= bx && event.getRawX() <= bx + bw
+                                && event.getRawY() >= by && event.getRawY() <= by + bh) {
+                            captureAndOCR();
+                        } else {
+                            btnSettings.getLocationOnScreen(loc);
+                            bx = loc[0]; by = loc[1];
+                            bw = btnSettings.getWidth(); bh = btnSettings.getHeight();
+                            if (event.getRawX() >= bx && event.getRawX() <= bx + bw
+                                    && event.getRawY() >= by && event.getRawY() <= by + bh) {
+                                Intent settingsIntent = new Intent(FloatingWindowService.this, SettingsActivity.class);
+                                settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                                startActivity(settingsIntent);
+                            }
+                        }
+                    }
                     return true;
             }
             return false;
         });
 
-        floatingView.findViewById(R.id.btn_screen).setOnClickListener(v -> captureAndOCR());
-        floatingView.findViewById(R.id.btn_settings).setOnClickListener(v -> {
-            Intent settingsIntent = new Intent(this, SettingsActivity.class);
-            settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(settingsIntent);
-        });
+        floatingView.findViewById(R.id.btn_screen).setOnClickListener(null);
+        floatingView.findViewById(R.id.btn_settings).setOnClickListener(null);
+        floatingView.setClickable(true);
     }
 
     private float initialX, initialY;
-    private float initialTouchX, initialTouchY;
 
     private void captureAndOCR() {
         if (imageReader == null) return;
@@ -176,15 +208,20 @@ public class FloatingWindowService extends Service {
         ByteBuffer buffer = planes[0].getBuffer();
         int pixelStride = planes[0].getPixelStride();
         int rowStride = planes[0].getRowStride();
-        int rowPadding = rowStride - pixelStride * screenWidth;
+        int bufferWidth = rowStride / pixelStride;
 
-        Bitmap bitmap = Bitmap.createBitmap(screenWidth + rowPadding / pixelStride, screenHeight, Bitmap.Config.ARGB_8888);
+        Bitmap bitmap = Bitmap.createBitmap(bufferWidth, screenHeight, Bitmap.Config.ARGB_8888);
         bitmap.copyPixelsFromBuffer(buffer);
         image.close();
 
-        Bitmap cropped = Bitmap.createBitmap(bitmap, 0, 0, screenWidth, screenHeight);
+        int copyWidth = Math.min(screenWidth, bufferWidth);
+        Bitmap cropped = Bitmap.createBitmap(bitmap, 0, 0, copyWidth, screenHeight);
+        if (cropped != bitmap) bitmap.recycle();
 
-        ocrProcessor.recognizeText(cropped, result -> showResultPanel(result));
+        ocrProcessor.recognizeText(cropped, result -> {
+            cropped.recycle();
+            showResultPanel(result);
+        });
     }
 
     private void showResultPanel(String text) {
