@@ -20,7 +20,6 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.util.DisplayMetrics;
 import android.view.Gravity;
