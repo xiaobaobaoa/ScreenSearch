@@ -187,7 +187,7 @@ public class FloatActivity extends Activity {
         searchBtn.setOnClickListener(v -> {
             searchBtn.setEnabled(false);
             searchBtn.setText("搜索中...");
-            aiSearchService.search(text, new AISearchService.Callback() {
+            aiSearchService.search(text, new AISearchService.OnSearchResultListener() {
                 @Override
                 public void onResult(String answer) {
                     new Handler(getMainLooper()).post(() -> {
