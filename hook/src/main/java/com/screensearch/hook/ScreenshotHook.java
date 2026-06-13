@@ -4,7 +4,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
-
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedBridge;
@@ -13,105 +12,101 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class ScreenshotHook implements IXposedHookLoadPackage {
 
+    private static final String TAG = "ScreenSearch";
     private static final String ACTION_HIDE = "com.screensearch.HIDE_WINDOW";
     private static final String ACTION_SHOW = "com.screensearch.SHOW_WINDOW";
-    private static final String TARGET_PKG = "com.screensearch.app";
-    private static Handler mainHandler = new Handler(Looper.getMainLooper());
+    private static final String PKG = "com.screensearch.app";
+
+    private static Context sSystemUIContext;
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
-        if (!lpparam.packageName.equals("com.android.systemui")) return;
+        XposedBridge.log("[" + TAG + "] Loaded: " + lpparam.packageName);
 
-        XposedBridge.log("ScreenSearch Hook: Loaded in SystemUI");
-
-        hookScreenshotHelper(lpparam);
-        hookSurfaceControl(lpparam);
-    }
-
-    private void hookScreenshotHelper(XC_LoadPackage.LoadPackageParam lpparam) {
-        try {
-            Class<?> clazz = XposedHelpers.findClass(
-                    "com.android.systemui.screenshot.ScreenshotHelper", lpparam.classLoader);
-
-            XposedBridge.hookAllMethods(clazz, "takeScreenshot", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    sendToApp(ACTION_HIDE);
-                }
-
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    mainHandler.postDelayed(() -> sendToApp(ACTION_SHOW), 2000);
-                }
-            });
-
-            XposedBridge.hookAllMethods(clazz, "takeScreenshotForSmartActions", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    sendToApp(ACTION_HIDE);
-                }
-
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    mainHandler.postDelayed(() -> sendToApp(ACTION_SHOW), 2000);
-                }
-            });
-
-            XposedBridge.log("ScreenSearch Hook: ScreenshotHelper hooked OK");
-        } catch (Throwable t) {
-            XposedBridge.log("ScreenSearch Hook: ScreenshotHelper not found: " + t.getMessage());
+        if (!"com.android.systemui".equals(lpparam.packageName)) {
+            return;
         }
-    }
 
-    private void hookSurfaceControl(XC_LoadPackage.LoadPackageParam lpparam) {
-        try {
-            Class<?> clazz = XposedHelpers.findClass(
-                    "android.view.SurfaceControl", lpparam.classLoader);
+        sSystemUIContext = (Context) XposedHelpers.getObjectField(
+            XposedHelpers.getStaticObjectField(
+                XposedHelpers.findClass("android.app.ActivityThread", lpparam.classLoader),
+                "currentActivityThread"
+            ),
+            "mSystemContext"
+        );
 
-            XposedBridge.hookAllMethods(clazz, "screenshot", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    sendToApp(ACTION_HIDE);
-                }
-
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    mainHandler.postDelayed(() -> sendToApp(ACTION_SHOW), 2000);
-                }
-            });
-
-            XposedBridge.hookAllMethods(clazz, "screenshotToBuffer", new XC_MethodHook() {
-                @Override
-                protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                    sendToApp(ACTION_HIDE);
-                }
-
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    mainHandler.postDelayed(() -> sendToApp(ACTION_SHOW), 2000);
-                }
-            });
-
-            XposedBridge.log("ScreenSearch Hook: SurfaceControl hooked OK");
-        } catch (Throwable t) {
-            XposedBridge.log("ScreenSearch Hook: SurfaceControl not found: " + t.getMessage());
+        if (sSystemUIContext == null) {
+            XposedBridge.log("[" + TAG + "] Cannot get SystemUI context");
+            return;
         }
+
+        XposedBridge.log("[" + TAG + "] SystemUI context OK, hooking...");
+
+        hookMethodSafe(lpparam.classLoader,
+            "com.android.systemui.screenshot.ScreenshotHelper",
+            "takeScreenshot", 6);
+
+        hookMethodSafe(lpparam.classLoader,
+            "com.android.systemui.screenshot.ScreenshotHelper",
+            "takeScreenshotForSmartActions", 6);
+
+        hookMethodSafe(lpparam.classLoader,
+            "android.view.SurfaceControl",
+            "screenshot", 4);
+
+        hookMethodSafe(lpparam.classLoader,
+            "android.view.SurfaceControl",
+            "screenshotToBuffer", 5);
+
+        XposedBridge.log("[" + TAG + "] All hooks done");
     }
 
-    private void sendToApp(String action) {
+    private void hookMethodSafe(ClassLoader cl, String className, String methodName, int maxParam) {
         try {
-            Class<?> atClass = Class.forName("android.app.ActivityThread");
-            java.lang.reflect.Method currentApp = atClass.getMethod("currentApplication");
-            Context context = (Context) currentApp.invoke(null);
-
-            if (context != null) {
-                Intent intent = new Intent(action);
-                intent.setPackage(TARGET_PKG);
-                context.sendBroadcast(intent);
-                XposedBridge.log("ScreenSearch Hook: Sent " + action);
+            Class<?> clazz = XposedHelpers.findClass(className, cl);
+            for (java.lang.reflect.Method m : clazz.getDeclaredMethods()) {
+                if (m.getName().equals(methodName) && m.getParameterTypes().length <= maxParam) {
+                    XposedBridge.hookMethod(m, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            XposedBridge.log("[" + TAG + "] >>> " + methodName + " intercepted!");
+                            hide();
+                        }
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            showDelayed();
+                        }
+                    });
+                    XposedBridge.log("[" + TAG + "] Hooked " + className + "." + methodName
+                        + " (params=" + m.getParameterTypes().length + ")");
+                }
             }
         } catch (Throwable t) {
-            XposedBridge.log("ScreenSearch Hook: send failed: " + t.getMessage());
+            XposedBridge.log("[" + TAG + "] FAILED " + className + "." + methodName + ": " + t.getMessage());
         }
+    }
+
+    private void hide() {
+        try {
+            Intent i = new Intent(ACTION_HIDE);
+            i.setPackage(PKG);
+            sSystemUIContext.sendBroadcast(i);
+            XposedBridge.log("[" + TAG + "] HIDE sent");
+        } catch (Throwable t) {
+            XposedBridge.log("[" + TAG + "] HIDE failed: " + t);
+        }
+    }
+
+    private void showDelayed() {
+        try {
+            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                try {
+                    Intent i = new Intent(ACTION_SHOW);
+                    i.setPackage(PKG);
+                    sSystemUIContext.sendBroadcast(i);
+                    XposedBridge.log("[" + TAG + "] SHOW sent");
+                } catch (Throwable t) {}
+            }, 1500);
+        } catch (Throwable t) {}
     }
 }
