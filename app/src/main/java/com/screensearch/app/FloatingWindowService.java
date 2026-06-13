@@ -123,8 +123,8 @@ public class FloatingWindowService extends Service {
                     initialTouchY = event.getRawY();
                     return true;
                 case MotionEvent.ACTION_MOVE:
-                    params.x = initialX + (int) (event.getRawX() - initialTouchX);
-                    params.y = initialY + (int) (event.getRawY() - initialTouchY);
+                    params.x = (int) (initialX + event.getRawX() - initialTouchX);
+                    params.y = (int) (initialY + event.getRawY() - initialTouchY);
                     windowManager.updateViewLayout(floatingView, params);
                     return true;
             }
