@@ -52,7 +52,8 @@ public class FloatingWindowService extends Service {
         ocrProcessor = new OCRProcessor();
         aiSearchService = new AISearchService(this);
 
-        ScreenshotDetectService.setCallback(new ScreenshotDetectService.HideCallback() {
+        RootScreenshotDetector detector = RootScreenshotDetector.getInstance();
+        detector.setCallback(new RootScreenshotDetector.HideCallback() {
             @Override
             public void onHide() {
                 if (floatingView != null) {
@@ -67,10 +68,15 @@ public class FloatingWindowService extends Service {
                 }
             }
         });
+
+        if (detector.checkRoot()) {
+            detector.start();
+        }
     }
 
     @Override
     public void onDestroy() {
+        RootScreenshotDetector.getInstance().stop();
         if (virtualDisplay != null) virtualDisplay.release();
         if (mediaProjection != null) mediaProjection.stop();
         if (floatingView != null) windowManager.removeView(floatingView);

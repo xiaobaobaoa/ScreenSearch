@@ -16,9 +16,7 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Intent> mediaProjectionLauncher;
     private ActivityResultLauncher<Intent> overlayPermissionLauncher;
-    private ActivityResultLauncher<Intent> accessibilityLauncher;
     private boolean waitingForOverlay = false;
-    private boolean waitingForAccessibility = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,19 +29,11 @@ public class MainActivity extends AppCompatActivity {
                     waitingForOverlay = false;
                     if (Settings.canDrawOverlays(this)) {
                         Toast.makeText(this, "悬浮窗权限已授予", Toast.LENGTH_SHORT).show();
-                        checkAccessibility();
+                        requestScreenCapture();
                     } else {
                         Toast.makeText(this, "悬浮窗权限未授予，无法使用", Toast.LENGTH_SHORT).show();
                         finish();
                     }
-                }
-        );
-
-        accessibilityLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    waitingForAccessibility = false;
-                    requestScreenCapture();
                 }
         );
 
@@ -74,10 +64,6 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         if (waitingForOverlay && Settings.canDrawOverlays(this)) {
             waitingForOverlay = false;
-            checkAccessibility();
-        }
-        if (waitingForAccessibility) {
-            waitingForAccessibility = false;
             requestScreenCapture();
         }
     }
@@ -89,17 +75,6 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     android.net.Uri.parse("package:" + getPackageName()));
             overlayPermissionLauncher.launch(intent);
-        } else {
-            checkAccessibility();
-        }
-    }
-
-    private void checkAccessibility() {
-        if (ScreenshotDetectService.getInstance() == null) {
-            Toast.makeText(this, "请开启无障碍服务以检测截屏事件", Toast.LENGTH_LONG).show();
-            waitingForAccessibility = true;
-            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
-            accessibilityLauncher.launch(intent);
         } else {
             requestScreenCapture();
         }
