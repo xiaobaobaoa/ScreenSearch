@@ -49,7 +49,6 @@ public class MainActivity extends AppCompatActivity {
                         } else {
                             startService(serviceIntent);
                         }
-                        finish();
                     } else {
                         Toast.makeText(this, "屏幕录制授权失败，result=" + result.getResultCode(), Toast.LENGTH_SHORT).show();
                     }
