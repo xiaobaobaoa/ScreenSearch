@@ -1,1 +1,3 @@
 -keep class com.google.mlkit.** { *; }
+-keep class okhttp3.** { *; }
+-keep class okio.** { *; }

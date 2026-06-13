@@ -24,8 +24,8 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.nio.ByteBuffer;
 
@@ -42,6 +42,7 @@ public class FloatingWindowService extends Service {
     private HandlerThread backgroundThread;
 
     private OCRProcessor ocrProcessor;
+    private AISearchService aiSearchService;
     private View resultPanel;
 
     @Override
@@ -49,6 +50,7 @@ public class FloatingWindowService extends Service {
         super.onCreate();
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         ocrProcessor = new OCRProcessor();
+        aiSearchService = new AISearchService(this);
     }
 
     @Override
@@ -132,7 +134,11 @@ public class FloatingWindowService extends Service {
         });
 
         floatingView.findViewById(R.id.btn_screen).setOnClickListener(v -> captureAndOCR());
-        floatingView.findViewById(R.id.btn_settings).setOnClickListener(v -> {});
+        floatingView.findViewById(R.id.btn_settings).setOnClickListener(v -> {
+            Intent settingsIntent = new Intent(this, SettingsActivity.class);
+            settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(settingsIntent);
+        });
     }
 
     private float initialX, initialY;
@@ -168,6 +174,38 @@ public class FloatingWindowService extends Service {
         resultPanel = LayoutInflater.from(this).inflate(R.layout.result_panel, null);
         TextView resultText = resultPanel.findViewById(R.id.result_text);
         resultText.setText(text);
+
+        Button searchBtn = resultPanel.findViewById(R.id.btn_search);
+        searchBtn.setOnClickListener(v -> {
+            if (!aiSearchService.isConfigured()) {
+                Toast.makeText(this, "请先点击右上角齿轮设置 API", Toast.LENGTH_SHORT).show();
+                Intent settingsIntent = new Intent(this, SettingsActivity.class);
+                settingsIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                startActivity(settingsIntent);
+                return;
+            }
+            searchBtn.setEnabled(false);
+            searchBtn.setText("搜索中...");
+            aiSearchService.search(text, new AISearchService.OnSearchResultListener() {
+                @Override
+                public void onResult(String answer) {
+                    runOnUiThread(() -> {
+                        resultText.setText(answer);
+                        searchBtn.setEnabled(true);
+                        searchBtn.setText("搜题");
+                    });
+                }
+
+                @Override
+                public void onError(String error) {
+                    runOnUiThread(() -> {
+                        resultText.setText("识别结果:\n" + text + "\n\n---\n搜索失败: " + error);
+                        searchBtn.setEnabled(true);
+                        searchBtn.setText("搜题");
+                    });
+                }
+            });
+        });
 
         Button closeBtn = resultPanel.findViewById(R.id.btn_close);
         closeBtn.setOnClickListener(v -> {

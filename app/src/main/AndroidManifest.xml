@@ -26,6 +26,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ScreenSearch" />
+
         <service
             android:name=".FloatingWindowService"
             android:exported="false"
