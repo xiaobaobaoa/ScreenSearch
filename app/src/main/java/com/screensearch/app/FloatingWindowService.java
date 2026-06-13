@@ -87,6 +87,15 @@ public class FloatingWindowService extends Service {
         MediaProjectionManager mpm = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
         mediaProjection = mpm.getMediaProjection(code, data);
 
+        if (mediaProjection == null) {
+            Toast.makeText(this, "屏幕录制授权失败", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            mediaProjection.registerCallback(new MediaProjection.Callback() {}, backgroundHandler);
+        }
+
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         screenWidth = metrics.widthPixels;
         screenHeight = metrics.heightPixels;
