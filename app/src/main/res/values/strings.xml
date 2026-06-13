@@ -2,4 +2,5 @@
 
 <resources>
     <string name="app_name">识屏搜题</string>
+    <string name="accessibility_service_description">用于检测截屏事件，在截屏时自动隐藏悬浮窗。</string>
 </resources>

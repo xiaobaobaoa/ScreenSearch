@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -15,7 +16,9 @@ public class MainActivity extends AppCompatActivity {
 
     private ActivityResultLauncher<Intent> mediaProjectionLauncher;
     private ActivityResultLauncher<Intent> overlayPermissionLauncher;
+    private ActivityResultLauncher<Intent> accessibilityLauncher;
     private boolean waitingForOverlay = false;
+    private boolean waitingForAccessibility = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,13 +29,21 @@ public class MainActivity extends AppCompatActivity {
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     waitingForOverlay = false;
-                    if (android.provider.Settings.canDrawOverlays(this)) {
-                        Toast.makeText(this, "悬浮窗权限已授予，请求屏幕录制...", Toast.LENGTH_SHORT).show();
-                        requestScreenCapture();
+                    if (Settings.canDrawOverlays(this)) {
+                        Toast.makeText(this, "悬浮窗权限已授予", Toast.LENGTH_SHORT).show();
+                        checkAccessibility();
                     } else {
                         Toast.makeText(this, "悬浮窗权限未授予，无法使用", Toast.LENGTH_SHORT).show();
                         finish();
                     }
+                }
+        );
+
+        accessibilityLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    waitingForAccessibility = false;
+                    requestScreenCapture();
                 }
         );
 
@@ -50,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
                             startService(serviceIntent);
                         }
                     } else {
-                        Toast.makeText(this, "屏幕录制授权失败，result=" + result.getResultCode(), Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "屏幕录制授权失败", Toast.LENGTH_SHORT).show();
                     }
                 }
         );
@@ -61,19 +72,34 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (waitingForOverlay && android.provider.Settings.canDrawOverlays(this)) {
+        if (waitingForOverlay && Settings.canDrawOverlays(this)) {
             waitingForOverlay = false;
+            checkAccessibility();
+        }
+        if (waitingForAccessibility) {
+            waitingForAccessibility = false;
             requestScreenCapture();
         }
     }
 
     private void checkAndStart() {
-        if (!android.provider.Settings.canDrawOverlays(this)) {
+        if (!Settings.canDrawOverlays(this)) {
             waitingForOverlay = true;
             Toast.makeText(this, "请授予悬浮窗权限", Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     android.net.Uri.parse("package:" + getPackageName()));
             overlayPermissionLauncher.launch(intent);
+        } else {
+            checkAccessibility();
+        }
+    }
+
+    private void checkAccessibility() {
+        if (ScreenshotDetectService.getInstance() == null) {
+            Toast.makeText(this, "请开启无障碍服务以检测截屏事件", Toast.LENGTH_LONG).show();
+            waitingForAccessibility = true;
+            Intent intent = new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS);
+            accessibilityLauncher.launch(intent);
         } else {
             requestScreenCapture();
         }
