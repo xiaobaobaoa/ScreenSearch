@@ -51,10 +51,39 @@ public class FloatingWindowService extends Service {
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         ocrProcessor = new OCRProcessor();
         aiSearchService = new AISearchService(this);
+
+        // 启动 root 截屏检测
+        RootScreenshotDetector detector = RootScreenshotDetector.getInstance();
+        detector.setCallback(new RootScreenshotDetector.HideCallback() {
+            @Override
+            public void onHide() {
+                if (floatingView != null) {
+                    floatingView.setVisibility(View.INVISIBLE);
+                }
+                if (resultPanel != null) {
+                    resultPanel.setVisibility(View.INVISIBLE);
+                }
+            }
+
+            @Override
+            public void onShow() {
+                if (floatingView != null) {
+                    floatingView.setVisibility(View.VISIBLE);
+                }
+                if (resultPanel != null) {
+                    resultPanel.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+
+        if (detector.checkRoot()) {
+            detector.start();
+        }
     }
 
     @Override
     public void onDestroy() {
+        RootScreenshotDetector.getInstance().stop();
         if (virtualDisplay != null) virtualDisplay.release();
         if (mediaProjection != null) mediaProjection.stop();
         if (floatingView != null) windowManager.removeView(floatingView);
